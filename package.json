@@ -72,5 +72,9 @@
   "peerDependencies": {
     "@sveltejs/kit": "^2.0.0",
     "svelte": "^5.0.0"
+  },
+  "publishConfig": {
+    "provenance": true,
+    "access": "public"
   }
 }
