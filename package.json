@@ -1,6 +1,6 @@
 {
   "name": "sveltekit-webmcp-forms",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Expose SvelteKit form actions as WebMCP tools with zero boilerplate",
   "keywords": [
     "actions",
