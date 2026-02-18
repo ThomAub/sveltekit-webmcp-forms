@@ -1,65 +1,81 @@
-# Svelte library
+# sveltekit-webmcp-forms
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
+Expose SvelteKit form actions as [WebMCP](https://docs.google.com/document/d/1rtU1fRPS0bMqd9abMG_hc6K9OAI6soUy3Kh00toAgyk/) tools with zero boilerplate.
 
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+[WebMCP](https://docs.google.com/document/d/1rtU1fRPS0bMqd9abMG_hc6K9OAI6soUy3Kh00toAgyk/) is a living web standard that lets AI agents interact with websites through structured tools instead of screen-scraping. Pages register tools via `navigator.modelContext`, and agents discover and invoke them with typed inputs and outputs. The spec is available in Chrome 146+ behind the "WebMCP for testing" flag.
 
-## Creating a project
+This library bridges WebMCP's imperative API with SvelteKit's form actions: define a tool, point it at an action, and the library handles validation, user confirmation, submission, and registration.
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+## Install
 
 ```sh
-# recreate this project
-npx sv create --template library --types ts --add vitest="usages:unit,component" mcp="ide:claude-code,opencode,cursor+setup:remote" --install npm sveltekit-webmcp-forms
+npm install sveltekit-webmcp-forms
 ```
 
-## Developing
+## Quick start
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Define a SvelteKit form action as usual:
 
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```ts
+// src/routes/demo/+page.server.ts
+export const actions = {
+  subscribe: async ({ request }) => {
+    const data = Object.fromEntries(await request.formData());
+    // ... handle subscription
+    return { success: true };
+  },
+};
 ```
 
-Everything inside `src/lib` is part of your library, everything inside `src/routes` can be used as a showcase or preview app.
+Wire it up as a WebMCP tool and register it with `<McpTools>`:
 
-## Building
+```svelte
+<!-- src/routes/demo/+page.svelte -->
+<script lang="ts">
+  import { McpTools, defineKitMcpActionTool } from "sveltekit-webmcp-forms";
 
-To build your library:
+  const subscribeTool = defineKitMcpActionTool({
+    name: "subscribe",
+    description: "Subscribe an email address to the newsletter",
+    action: "/demo?/subscribe",
+    inputSchema: {
+      type: "object",
+      properties: {
+        email: { type: "string", description: "Email address" },
+      },
+      required: ["email"],
+    },
+  });
+</script>
 
-```sh
-npm pack
+<McpTools tools={[subscribeTool]} />
 ```
 
-To create a production version of your showcase app:
+An AI agent visiting this page will discover the `subscribe` tool via `navigator.modelContext` and can invoke it directly - no DOM scraping needed.
 
-```sh
-npm run build
-```
+## Features
 
-You can preview the production build with `npm run preview`.
+- **`defineKitMcpActionTool`** - factory that creates a WebMCP tool backed by a SvelteKit form action, with optional validation, input normalization, and user confirmation
+- **`<McpTools>`** - Svelte component that registers/unregisters tools on the page's model context
+- **Validation** - plug in any schema validator (a default one is included) to validate agent inputs before submission
+- **Confirmation** - built-in `"always"` / `"never"` policies or a custom function to gate tool execution behind user consent
+- **Coercion helpers** - `coerceNumber`, `coerceBoolean`, `withDefaults`, `pipe` for transforming raw agent inputs into the types your action expects
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## API
 
-## Publishing
+| Export                     | Description                                              |
+| -------------------------- | -------------------------------------------------------- |
+| `defineKitMcpActionTool()` | Create a WebMCP tool that submits to a SvelteKit action  |
+| `<McpTools>`               | Register tools on `navigator.modelContext`               |
+| `submitToKitAction()`      | Low-level: POST FormData to a SvelteKit action endpoint  |
+| `getModelContext()`        | Access `navigator.modelContext` (returns `null` if unavailable) |
+| `isWebMcpAvailable()`      | Check if the browser supports WebMCP                     |
+| `defaultValidate()`        | Built-in schema validation function                      |
+| `coerceNumber()`           | Coerce string input to number                            |
+| `coerceBoolean()`          | Coerce string input to boolean                           |
+| `withDefaults()`           | Apply default values to missing fields                   |
+| `pipe()`                   | Compose multiple normalization functions                 |
 
-Go into the `package.json` and give your package the desired name through the `"name"` option. Also consider adding a `"license"` field and point it to a `LICENSE` file which you can create from a template (one popular option is the [MIT license](https://opensource.org/license/mit/)).
+## License
 
-To publish your library to [npm](https://www.npmjs.com):
-
-```sh
-npm publish
-```
+[MIT](LICENSE)
